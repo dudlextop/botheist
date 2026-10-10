@@ -90,14 +90,14 @@ function BountyCampaign({ c, onStart, starting }: { c: Challenge; onStart: (c: C
         <Price lamports={pool} className="mt-1 text-5xl" />
         <h3 className="mt-5 text-xl leading-snug font-bold">{c.title}</h3>
         {c.description && <p className="mt-1 text-sm">{c.description}</p>}
-        <dl className="mt-5 grid grid-cols-2 gap-3 text-sm">
+        <dl className="mt-5 grid grid-cols-2 gap-3 text-sm [&_dd]:leading-snug">
           <div>
             <dt className="text-ink/70">Closes in</dt>
             <dd className="font-bold">{timeLeft(c.submissionsCloseAt)}</dd>
           </div>
           <div>
             <dt className="text-ink/70">Cashier</dt>
-            <dd className="font-bold">{c.agent.modelLabel}</dd>
+            <dd className="font-bold">{c.offlineAllowed ? `${c.agent.modelLabel} with your key, offline Milo without` : c.agent.modelLabel}</dd>
           </div>
         </dl>
         {c.explorerUrl && (

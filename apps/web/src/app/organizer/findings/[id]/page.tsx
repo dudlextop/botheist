@@ -29,6 +29,7 @@ interface Regression {
 }
 
 interface Card {
+  brain?: string;
   id: string;
   status: string;
   summary: string;
@@ -165,6 +166,7 @@ function FindingCard({ id }: { id: string }) {
     ["Refunded", <span key="r" className="font-mono text-destructive">{credits(card.refunded)}</span>],
     ["Decisive action", card.decisiveAction ? `${card.decisiveAction} (step ${card.decisiveSeq})` : "—"],
     ["Agent version", `${card.agent.name} on ${card.agent.model}, config ${card.agent.configHash.slice(0, 10)}`],
+    ["Cashier", card.brain === "PLAYER_KEY" ? "Claude, on the player's API key" : card.brain === "SERVER_KEY" ? "Claude, on the server's key" : "Offline Milo, a scripted stand-in (no model)"],
     ["Player turns", card.playerMessages],
     ["Status", card.status === "CONFIRMED" ? "Confirmed by replay" : card.status],
     ["Bounty", card.payout ? (PAYOUT_LABEL[card.payout.status] ?? card.payout.status) : card.campaign.kind === "PRIZE" ? "Not paid (slot taken or window closed)" : "Practice"],
