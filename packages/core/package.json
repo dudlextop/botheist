@@ -1,0 +1,21 @@
+{
+  "name": "@botheist/core",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "main": "./src/index.ts",
+  "types": "./src/index.ts",
+  "exports": { ".": "./src/index.ts" },
+  "scripts": {
+    "test": "vitest run",
+    "typecheck": "tsc --noEmit"
+  },
+  "dependencies": {
+    "@botheist/agent": "workspace:*",
+    "@botheist/db": "workspace:*",
+    "@botheist/engine": "workspace:*",
+    "@botheist/solana": "workspace:*",
+    "@solana/kit": "8.4.0",
+    "jose": "6.2.12"
+  }
+}
