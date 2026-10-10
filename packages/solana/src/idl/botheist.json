@@ -1,0 +1,799 @@
+{
+  "address": "FomST5XstXfxSRTEZFVkXRonCVrjML9KhFS4ryeH9Vt1",
+  "metadata": {
+    "name": "botheist",
+    "version": "0.1.0",
+    "spec": "0.1.0",
+    "description": "BotHeist bounty escrow: fund a campaign, pay the first verified finding per rule once, refund the rest after the deadline."
+  },
+  "docs": [
+    "BotHeist bounty escrow.",
+    "",
+    "An organizer funds a campaign up front. A designated verifier pays the first",
+    "confirmed finding for each rule exactly once. Whatever is left returns to the",
+    "organizer only after the payout deadline."
+  ],
+  "instructions": [
+    {
+      "name": "award",
+      "discriminator": [
+        180,
+        74,
+        165,
+        67,
+        179,
+        135,
+        27,
+        202
+      ],
+      "accounts": [
+        {
+          "name": "verifier",
+          "docs": [
+            "The campaign's verifier signs and pays for the Claim account."
+          ],
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "campaign"
+          ]
+        },
+        {
+          "name": "campaign",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  109,
+                  112,
+                  97,
+                  105,
+                  103,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign.organizer",
+                "account": "Campaign"
+              },
+              {
+                "kind": "account",
+                "path": "campaign.campaign_id",
+                "account": "Campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "claim",
+          "docs": [
+            "`init` fails if a Claim for this (campaign, rule) already exists."
+          ],
+          "writable": true
+        },
+        {
+          "name": "winner",
+          "docs": [
+            "The wallet bound to the winning run. Recorded in the Claim."
+          ],
+          "writable": true
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "rule_id",
+          "type": "u8"
+        },
+        {
+          "name": "run_id",
+          "type": {
+            "array": [
+              "u8",
+              16
+            ]
+          }
+        },
+        {
+          "name": "proof_hash",
+          "type": {
+            "array": [
+              "u8",
+              32
+            ]
+          }
+        }
+      ]
+    },
+    {
+      "name": "create_and_fund_campaign",
+      "discriminator": [
+        110,
+        177,
+        66,
+        177,
+        106,
+        202,
+        206,
+        191
+      ],
+      "accounts": [
+        {
+          "name": "organizer",
+          "writable": true,
+          "signer": true
+        },
+        {
+          "name": "campaign",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  109,
+                  112,
+                  97,
+                  105,
+                  103,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organizer"
+              },
+              {
+                "kind": "arg",
+                "path": "args.campaign_id"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": [
+        {
+          "name": "args",
+          "type": {
+            "defined": {
+              "name": "CreateCampaignArgs"
+            }
+          }
+        }
+      ]
+    },
+    {
+      "name": "refund",
+      "discriminator": [
+        2,
+        96,
+        183,
+        251,
+        63,
+        208,
+        46,
+        46
+      ],
+      "accounts": [
+        {
+          "name": "organizer",
+          "writable": true,
+          "signer": true,
+          "relations": [
+            "campaign"
+          ]
+        },
+        {
+          "name": "campaign",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  99,
+                  97,
+                  109,
+                  112,
+                  97,
+                  105,
+                  103,
+                  110
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "organizer"
+              },
+              {
+                "kind": "account",
+                "path": "campaign.campaign_id",
+                "account": "Campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "vault",
+          "writable": true,
+          "pda": {
+            "seeds": [
+              {
+                "kind": "const",
+                "value": [
+                  118,
+                  97,
+                  117,
+                  108,
+                  116
+                ]
+              },
+              {
+                "kind": "account",
+                "path": "campaign"
+              }
+            ]
+          }
+        },
+        {
+          "name": "system_program",
+          "address": "11111111111111111111111111111111"
+        }
+      ],
+      "args": []
+    }
+  ],
+  "accounts": [
+    {
+      "name": "Campaign",
+      "discriminator": [
+        50,
+        40,
+        49,
+        11,
+        157,
+        220,
+        229,
+        192
+      ]
+    },
+    {
+      "name": "Claim",
+      "discriminator": [
+        155,
+        70,
+        22,
+        176,
+        123,
+        215,
+        246,
+        102
+      ]
+    }
+  ],
+  "events": [
+    {
+      "name": "CampaignFunded",
+      "discriminator": [
+        46,
+        83,
+        210,
+        201,
+        110,
+        227,
+        24,
+        212
+      ]
+    },
+    {
+      "name": "CampaignRefunded",
+      "discriminator": [
+        31,
+        13,
+        98,
+        74,
+        196,
+        11,
+        115,
+        225
+      ]
+    },
+    {
+      "name": "RewardAwarded",
+      "discriminator": [
+        170,
+        61,
+        3,
+        227,
+        130,
+        38,
+        131,
+        123
+      ]
+    }
+  ],
+  "errors": [
+    {
+      "code": 6000,
+      "name": "InvalidRewards",
+      "msg": "A campaign needs between 1 and 8 rewards, each with a positive amount"
+    },
+    {
+      "code": 6001,
+      "name": "DuplicateRule",
+      "msg": "Each rule can only have one reward"
+    },
+    {
+      "code": 6002,
+      "name": "InvalidSchedule",
+      "msg": "Submissions must close in the future and before the payout deadline"
+    },
+    {
+      "code": 6003,
+      "name": "InvalidVerifier",
+      "msg": "The verifier cannot be the default key"
+    },
+    {
+      "code": 6004,
+      "name": "Overflow",
+      "msg": "Arithmetic overflow"
+    },
+    {
+      "code": 6005,
+      "name": "UnknownRule",
+      "msg": "This rule has no reward in the campaign"
+    },
+    {
+      "code": 6006,
+      "name": "AlreadyClaimed",
+      "msg": "The reward for this rule was already paid"
+    },
+    {
+      "code": 6007,
+      "name": "PayoutWindowClosed",
+      "msg": "The payout deadline has passed"
+    },
+    {
+      "code": 6008,
+      "name": "InsufficientFunds",
+      "msg": "The vault does not hold enough lamports for this reward"
+    },
+    {
+      "code": 6009,
+      "name": "CampaignClosed",
+      "msg": "The campaign is closed"
+    },
+    {
+      "code": 6010,
+      "name": "PayoutWindowOpen",
+      "msg": "Funds can only be returned after the payout deadline"
+    },
+    {
+      "code": 6011,
+      "name": "InvalidWinner",
+      "msg": "The winner cannot be the vault or the campaign"
+    }
+  ],
+  "types": [
+    {
+      "name": "Campaign",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "organizer",
+            "type": "pubkey"
+          },
+          {
+            "name": "verifier",
+            "docs": [
+              "The only key allowed to call `award` for this campaign."
+            ],
+            "type": "pubkey"
+          },
+          {
+            "name": "campaign_id",
+            "docs": [
+              "Off-chain campaign identifier (UUID bytes), part of the PDA seeds."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "config_hash",
+            "docs": [
+              "Hash of the frozen campaign terms: agent version, rules, rewards, limits."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "rewards",
+            "type": {
+              "array": [
+                {
+                  "defined": {
+                    "name": "RewardEntry"
+                  }
+                },
+                8
+              ]
+            }
+          },
+          {
+            "name": "reward_count",
+            "type": "u8"
+          },
+          {
+            "name": "total_funded",
+            "type": "u64"
+          },
+          {
+            "name": "total_paid",
+            "type": "u64"
+          },
+          {
+            "name": "created_at",
+            "type": "i64"
+          },
+          {
+            "name": "submissions_close_at",
+            "type": "i64"
+          },
+          {
+            "name": "payout_deadline_at",
+            "type": "i64"
+          },
+          {
+            "name": "closed",
+            "type": "bool"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          },
+          {
+            "name": "vault_bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CampaignFunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "organizer",
+            "type": "pubkey"
+          },
+          {
+            "name": "verifier",
+            "type": "pubkey"
+          },
+          {
+            "name": "total_funded",
+            "type": "u64"
+          },
+          {
+            "name": "config_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "CampaignRefunded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "organizer",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "Claim",
+      "docs": [
+        "One per (campaign, rule). Its existence is the on-chain guarantee that a",
+        "reward is paid at most once."
+      ],
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "rule_id",
+            "type": "u8"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "run_id",
+            "docs": [
+              "Off-chain run identifier (UUID bytes)."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "proof_hash",
+            "docs": [
+              "SHA-256 of the canonical proof record."
+            ],
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "awarded_at",
+            "type": "i64"
+          },
+          {
+            "name": "bump",
+            "type": "u8"
+          }
+        ]
+      }
+    },
+    {
+      "name": "CreateCampaignArgs",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "verifier",
+            "type": "pubkey"
+          },
+          {
+            "name": "config_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          },
+          {
+            "name": "rewards",
+            "type": {
+              "vec": {
+                "defined": {
+                  "name": "RewardInput"
+                }
+              }
+            }
+          },
+          {
+            "name": "submissions_close_at",
+            "type": "i64"
+          },
+          {
+            "name": "payout_deadline_at",
+            "type": "i64"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardAwarded",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "campaign",
+            "type": "pubkey"
+          },
+          {
+            "name": "rule_id",
+            "type": "u8"
+          },
+          {
+            "name": "winner",
+            "type": "pubkey"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          },
+          {
+            "name": "run_id",
+            "type": {
+              "array": [
+                "u8",
+                16
+              ]
+            }
+          },
+          {
+            "name": "proof_hash",
+            "type": {
+              "array": [
+                "u8",
+                32
+              ]
+            }
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardEntry",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rule_id",
+            "docs": [
+              "Rule index agreed off-chain (0 = Double Dip, 1 = Wrong Pocket, 2 = Ghost Order, ...)."
+            ],
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "docs": [
+              "Reward in lamports, fixed at creation. The verifier cannot change it."
+            ],
+            "type": "u64"
+          },
+          {
+            "name": "claimed",
+            "type": "bool"
+          }
+        ]
+      }
+    },
+    {
+      "name": "RewardInput",
+      "type": {
+        "kind": "struct",
+        "fields": [
+          {
+            "name": "rule_id",
+            "type": "u8"
+          },
+          {
+            "name": "amount",
+            "type": "u64"
+          }
+        ]
+      }
+    }
+  ],
+  "constants": [
+    {
+      "name": "CAMPAIGN_SEED",
+      "type": "bytes",
+      "value": "[99, 97, 109, 112, 97, 105, 103, 110]"
+    },
+    {
+      "name": "CLAIM_SEED",
+      "type": "bytes",
+      "value": "[99, 108, 97, 105, 109]"
+    },
+    {
+      "name": "MAX_REWARDS",
+      "docs": [
+        "Maximum number of rewarded rules (missions) per campaign."
+      ],
+      "type": "u8",
+      "value": "8"
+    },
+    {
+      "name": "VAULT_SEED",
+      "type": "bytes",
+      "value": "[118, 97, 117, 108, 116]"
+    }
+  ]
+}
