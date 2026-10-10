@@ -1,0 +1,25 @@
+{
+  "name": "@botheist/worker",
+  "version": "1.0.0",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "start": "tsx src/main.ts all",
+    "agent": "tsx src/main.ts agent",
+    "payout": "tsx src/main.ts payout",
+    "typecheck": "tsc --noEmit",
+    "dev-session": "tsx src/scripts/dev-session.ts",
+    "seed:devnet": "tsx src/scripts/seed-devnet.ts",
+    "smoke:bounty": "tsx src/scripts/smoke-bounty.ts",
+    "verify:proof": "tsx src/scripts/verify-proof.ts"
+  },
+  "dependencies": {
+    "@botheist/core": "workspace:*",
+    "@botheist/db": "workspace:*",
+    "dotenv": "18.0.7",
+    "@botheist/solana": "workspace:*",
+    "@botheist/agent": "workspace:*",
+    "@solana/kit": "8.4.0",
+    "@botheist/engine": "workspace:*"
+  }
+}
