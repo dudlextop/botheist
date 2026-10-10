@@ -1,0 +1,19 @@
+{
+  "name": "botheist",
+  "private": true,
+  "packageManager": "pnpm@10.20.0",
+  "engines": { "node": ">=20.18" },
+  "scripts": {
+    "build": "pnpm -r build",
+    "test": "pnpm -r --if-present test",
+    "typecheck": "pnpm -r --if-present typecheck",
+    "dev": "pnpm --filter @botheist/web dev",
+    "worker": "pnpm --filter @botheist/worker start"
+  },
+  "devDependencies": {
+    "typescript": "6.0.3",
+    "@types/node": "^22",
+    "vitest": "5.0.3",
+    "tsx": "4.23.15"
+  }
+}

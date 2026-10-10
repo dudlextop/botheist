@@ -1,0 +1,26 @@
+node_modules/
+.next/
+dist/
+coverage/
+.env
+.env.local
+.env.*.local
+.keys/
+target/
+test-ledger/
+.anchor/
+*.tsbuildinfo
+.DS_Store
+playwright-report/
+test-results/
+packages/db/generated/
+.codama/
+
+# Local tooling
+.claude/
+
+# Internal working notes and review screenshots (kept locally, not published)
+PLAN.md
+proofpilot-botheist-review.md
+docs/SPEC.md
+docs/screens/
