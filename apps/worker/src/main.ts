@@ -19,16 +19,30 @@ function log(msg: string, extra: Record<string, unknown> = {}) {
   console.log(JSON.stringify({ t: new Date().toISOString(), worker: role, msg, ...extra }));
 }
 
-/** Agent worker: runs cashier turns. Holds no payout key. */
+/**
+ * Agent worker: everything that calls a model (cashier turns and regression
+ * reruns), and opens brought API keys. It never loads the verifier key.
+ */
 async function handleAgent(job: Job) {
+  if (job.type === "regression") {
+    const { regressionId } = job.payload as { regressionId: string };
+    await core.runRegressionJob(db, regressionId);
+    log("regression done", { regressionId });
+    return;
+  }
   const { runId, text } = job.payload as { runId: string; text: string };
   const outcome = await core.processAgentTurn(db, runId, text);
   log("agent turn", { runId, outcome });
 }
 
-/** Payout worker: verification, rewards and regressions. The only holder of the verifier key. */
-const chain = new core.SolanaPayoutChain();
+/**
+ * Payout worker: verification and rewards. The only holder of the verifier key,
+ * and it never calls a model. Run `agent` and `payout` as separate processes in
+ * production; `all` runs both in one process for local development.
+ */
+const chain = role === "agent" ? null : new core.SolanaPayoutChain();
 async function handlePayout(job: Job) {
+  if (!chain) throw new Error("The payout role is not enabled in this process");
   const p = job.payload as Record<string, string>;
   switch (job.type) {
     case "verify_finding":
@@ -43,10 +57,6 @@ async function handlePayout(job: Job) {
       return;
     case "confirm_payout":
       log("payout confirm", { payoutId: p.payoutId, status: await core.confirmPayoutJob(db, chain, p.payoutId!, job.attempts) });
-      return;
-    case "regression":
-      await core.runRegressionJob(db, p.regressionId!);
-      log("regression done", { regressionId: p.regressionId });
       return;
   }
 }
@@ -102,11 +112,11 @@ process.on("SIGTERM", () => (stopping = true));
 await core.ensureTrainingCatalog(db);
 log("started", { workerId, cluster: core.config.cluster, payouts: core.config.payoutsEnabled });
 const tasks: Promise<void>[] = [housekeeping()];
-if (role === "agent" || role === "all") tasks.push(loop(["agent_turn"], handleAgent, 8));
-if (role === "payout" || role === "all") {
-  tasks.push(loop(["verify_finding", "send_payout", "confirm_payout"], handlePayout, 1));
-  tasks.push(loop(["regression"], handlePayout, 2));
+if (role === "agent" || role === "all") {
+  tasks.push(loop(["agent_turn"], handleAgent, 8));
+  tasks.push(loop(["regression"], handleAgent, 2));
 }
+if (role === "payout" || role === "all") tasks.push(loop(["verify_finding", "send_payout", "confirm_payout"], handlePayout, 1));
 await Promise.all(tasks);
 await db.$disconnect();
 log("stopped");
