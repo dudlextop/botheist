@@ -1,0 +1,345 @@
+// BotHeist data model. See docs/SPEC.md §10.
+
+generator client {
+  provider = "prisma-client"
+  output   = "../generated"
+}
+
+datasource db {
+  provider = "postgresql"
+}
+
+enum Role {
+  PLAYER
+  ORGANIZER
+  ADMIN
+}
+
+enum CampaignKind {
+  TRAINING
+  PRIZE
+}
+
+enum CampaignStatus {
+  DRAFT
+  AWAITING_FUNDING
+  ACTIVE
+  CLOSED
+  REFUNDED
+}
+
+enum RuleId {
+  DOUBLE_DIP
+  WRONG_POCKET
+  GHOST_ORDER
+}
+
+enum RunStatus {
+  ACTIVE
+  WON
+  LOST
+  EXPIRED
+  MODEL_ERROR
+  ABORTED
+}
+
+enum FindingStatus {
+  PENDING
+  CONFIRMED
+  REJECTED
+}
+
+enum PayoutStatus {
+  PENDING
+  SENDING
+  SENT
+  CONFIRMED
+  FAILED
+  SUPERSEDED
+}
+
+enum JobStatus {
+  QUEUED
+  RUNNING
+  DONE
+  FAILED
+}
+
+/// Who runs Milo for an attempt: the offline scripted stand-in, Claude on a key
+/// the player brought, or Claude on the server's key.
+enum ModelBrain {
+  OFFLINE
+  PLAYER_KEY
+  SERVER_KEY
+}
+
+enum RegressionMode {
+  ACTION_REPLAY
+  AGENT_RERUN
+}
+
+model User {
+  id           String        @id @default(uuid()) @db.Uuid
+  wallet       String?       @unique
+  displayName  String?
+  role         Role          @default(PLAYER)
+  points       Int           @default(0)
+  createdAt    DateTime      @default(now())
+  runs         Run[]
+  campaigns    Campaign[]    @relation("Organizer")
+  agentVersions AgentVersion[]
+  achievements Achievement[]
+}
+
+model AuthNonce {
+  nonce     String    @id
+  wallet    String
+  message   String
+  expiresAt DateTime
+  usedAt    DateTime?
+  createdAt DateTime  @default(now())
+}
+
+/// A frozen agent configuration. Any change to model, instructions, tools or guards is a new row.
+model AgentVersion {
+  id            String     @id @default(uuid()) @db.Uuid
+  slug          String     @unique
+  name          String
+  label         String
+  blurb         String     @default("")
+  difficulty    Int        @default(2)
+  model         String
+  effort        String     @default("medium")
+  instructions  String
+  guards        Json
+  seedOptions   Json       @default("{}")
+  engineVersion String
+  rulesVersion  String
+  configHash    String     @unique
+  isTraining    Boolean    @default(false)
+  parentId      String?    @db.Uuid
+  parent        AgentVersion?  @relation("Lineage", fields: [parentId], references: [id])
+  children      AgentVersion[] @relation("Lineage")
+  createdById   String?    @db.Uuid
+  createdBy     User?      @relation(fields: [createdById], references: [id])
+  createdAt     DateTime   @default(now())
+  campaigns     Campaign[]
+  runs          Run[]
+  regressionRuns RegressionRun[]
+}
+
+model Campaign {
+  id                     String         @id @default(uuid()) @db.Uuid
+  slug                   String         @unique
+  title                  String
+  description            String         @default("")
+  kind                   CampaignKind
+  status                 CampaignStatus @default(DRAFT)
+  organizerId            String?        @db.Uuid
+  organizer              User?          @relation("Organizer", fields: [organizerId], references: [id])
+  agentVersionId         String         @db.Uuid
+  agentVersion           AgentVersion   @relation(fields: [agentVersionId], references: [id])
+  /// Hash of the frozen terms (agent config + missions + rewards + limits + schedule).
+  configHash             String?
+  /// Players without a Claude key may play against the offline stand-in (demo campaigns).
+  offlineAllowed         Boolean        @default(false)
+  maxMessages            Int            @default(10)
+  maxToolCalls           Int            @default(20)
+  maxDurationSec         Int            @default(300)
+  runBudgetMicros        Int            @default(250000)
+  totalBudgetMicros      BigInt         @default(50000000)
+  spentMicros            BigInt         @default(0)
+  startsAt               DateTime?
+  submissionsCloseAt     DateTime?
+  payoutDeadlineAt       DateTime?
+  cluster                String?
+  programId              String?
+  onchainAddress         String?        @unique
+  vaultAddress           String?
+  verifierPubkey         String?
+  fundTxSignature        String?
+  fundedLamports         BigInt?
+  refundTxSignature      String?
+  publishedAt            DateTime?
+  createdAt              DateTime       @default(now())
+  updatedAt              DateTime       @updatedAt
+  missions               Mission[]
+  runs                   Run[]
+  findings               Finding[]
+  payouts                Payout[]
+}
+
+model Mission {
+  id             String      @id @default(uuid()) @db.Uuid
+  campaignId     String      @db.Uuid
+  campaign       Campaign    @relation(fields: [campaignId], references: [id], onDelete: Cascade)
+  rule           RuleId
+  ruleIndex      Int
+  title          String
+  objective      String
+  rewardLamports BigInt      @default(0)
+  points         Int         @default(100)
+  sortOrder      Int         @default(0)
+  runs           Run[]
+  findings       Finding[]
+  rewardSlot     RewardSlot?
+
+  @@unique([campaignId, rule])
+}
+
+model Run {
+  id             String       @id @default(uuid()) @db.Uuid
+  campaignId     String       @db.Uuid
+  campaign       Campaign     @relation(fields: [campaignId], references: [id])
+  missionId      String       @db.Uuid
+  mission        Mission      @relation(fields: [missionId], references: [id])
+  agentVersionId String       @db.Uuid
+  agentVersion   AgentVersion @relation(fields: [agentVersionId], references: [id])
+  userId         String?      @db.Uuid
+  user           User?        @relation(fields: [userId], references: [id])
+  guestKey       String?
+  /// Wallet bound before the run starts; receives the reward.
+  wallet         String?
+  status         RunStatus    @default(ACTIVE)
+  seedState      Json
+  state          Json
+  /// Append-only model conversation (assistant content kept verbatim).
+  conversation   Json         @default("[]")
+  nextEventSeq   Int          @default(1)
+  opSeq          Int          @default(0)
+  playerMessages Int          @default(0)
+  toolCalls      Int          @default(0)
+  costMicros     Int          @default(0)
+  brain          ModelBrain   @default(OFFLINE)
+  /// The player's own Claude API key, AES-GCM sealed; erased when the attempt ends.
+  apiKeySealed   String?
+  busy           Boolean      @default(false)
+  endReason      String?
+  startedAt      DateTime     @default(now())
+  expiresAt      DateTime
+  finishedAt     DateTime?
+  events         RunEvent[]
+  finding        Finding?
+
+  @@index([campaignId, status])
+  @@index([userId])
+  @@index([guestKey])
+}
+
+model RunEvent {
+  id          BigInt   @id @default(autoincrement())
+  runId       String   @db.Uuid
+  run         Run      @relation(fields: [runId], references: [id], onDelete: Cascade)
+  seq         Int
+  type        String
+  payload     Json
+  clientMsgId String?
+  createdAt   DateTime @default(now())
+
+  @@unique([runId, seq])
+  @@unique([runId, clientMsgId])
+}
+
+model Finding {
+  id                String         @id @default(uuid()) @db.Uuid
+  runId             String         @unique @db.Uuid
+  run               Run            @relation(fields: [runId], references: [id])
+  campaignId        String         @db.Uuid
+  campaign          Campaign       @relation(fields: [campaignId], references: [id])
+  missionId         String         @db.Uuid
+  mission           Mission        @relation(fields: [missionId], references: [id])
+  rule              RuleId
+  status            FindingStatus  @default(PENDING)
+  decisiveSeq       Int?
+  paidMinor         Int?
+  refundedMinor     Int?
+  summary           String         @default("")
+  proof             Json?
+  proofHash         String?
+  otherViolations   Json           @default("[]")
+  winnerWallet      String?
+  rejectionReason   String?
+  addedToRegression Boolean        @default(false)
+  verifiedAt        DateTime?
+  createdAt         DateTime       @default(now())
+  payout            Payout?
+  wonSlot           RewardSlot?
+  regressions       RegressionRun[]
+}
+
+/// One reward per mission. The first confirmed finding to take the slot wins.
+model RewardSlot {
+  id              String    @id @default(uuid()) @db.Uuid
+  missionId       String    @unique @db.Uuid
+  mission         Mission   @relation(fields: [missionId], references: [id], onDelete: Cascade)
+  winnerFindingId String?   @unique @db.Uuid
+  winnerFinding   Finding?  @relation(fields: [winnerFindingId], references: [id])
+  claimedAt       DateTime?
+}
+
+model Payout {
+  id           String       @id @default(uuid()) @db.Uuid
+  findingId    String       @unique @db.Uuid
+  finding      Finding      @relation(fields: [findingId], references: [id])
+  campaignId   String       @db.Uuid
+  campaign     Campaign     @relation(fields: [campaignId], references: [id])
+  recipient    String
+  lamports     BigInt
+  ruleIndex    Int
+  status       PayoutStatus @default(PENDING)
+  txSignature  String?
+  claimAddress String?
+  attempts     Int          @default(0)
+  lastError    String?
+  sentAt       DateTime?
+  confirmedAt  DateTime?
+  createdAt    DateTime     @default(now())
+  updatedAt    DateTime     @updatedAt
+}
+
+model RegressionRun {
+  id                   String         @id @default(uuid()) @db.Uuid
+  findingId            String         @db.Uuid
+  finding              Finding        @relation(fields: [findingId], references: [id])
+  targetAgentVersionId String         @db.Uuid
+  targetAgentVersion   AgentVersion   @relation(fields: [targetAgentVersionId], references: [id])
+  mode                 RegressionMode
+  repeats              Int            @default(1)
+  status               JobStatus      @default(QUEUED)
+  results              Json?
+  summary              String?
+  costMicros           Int            @default(0)
+  brain                ModelBrain     @default(OFFLINE)
+  /// The organizer's own Claude API key, AES-GCM sealed; erased when the check finishes.
+  apiKeySealed         String?
+  createdAt            DateTime       @default(now())
+  finishedAt           DateTime?
+}
+
+model Job {
+  id          BigInt    @id @default(autoincrement())
+  type        String
+  payload     Json
+  status      JobStatus @default(QUEUED)
+  runAt       DateTime  @default(now())
+  attempts    Int       @default(0)
+  maxAttempts Int       @default(5)
+  lockedAt    DateTime?
+  lockedBy    String?
+  lastError   String?
+  dedupeKey   String?   @unique
+  createdAt   DateTime  @default(now())
+  updatedAt   DateTime  @updatedAt
+
+  @@index([status, runAt])
+}
+
+model Achievement {
+  id       String   @id @default(uuid()) @db.Uuid
+  userId   String   @db.Uuid
+  user     User     @relation(fields: [userId], references: [id])
+  code     String
+  earnedAt DateTime @default(now())
+
+  @@unique([userId, code])
+}
