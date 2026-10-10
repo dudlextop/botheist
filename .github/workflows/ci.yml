@@ -1,0 +1,65 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+jobs:
+  app:
+    name: Engine, agent, core (PostgreSQL), typecheck
+    runs-on: ubuntu-latest
+    services:
+      postgres:
+        image: postgres:16
+        env:
+          POSTGRES_USER: botheist
+          POSTGRES_PASSWORD: botheist
+          POSTGRES_DB: botheist_test
+        ports: ["5432:5432"]
+        options: >-
+          --health-cmd "pg_isready -U botheist" --health-interval 5s --health-timeout 5s --health-retries 10
+    env:
+      DATABASE_URL: postgresql://botheist:botheist@localhost:5432/botheist_test?schema=public
+      TEST_DATABASE_URL: postgresql://botheist:botheist@localhost:5432/botheist_test?schema=public
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - run: pnpm --filter @botheist/db generate
+      - run: pnpm --filter @botheist/db migrate:deploy
+      - run: pnpm --filter @botheist/engine test
+      - run: pnpm --filter @botheist/agent test
+      - run: pnpm --filter @botheist/core test
+      - name: Typecheck
+        run: |
+          for p in packages/engine packages/agent packages/core packages/db packages/solana apps/worker; do (cd $p && npx tsc --noEmit -p .); done
+          cd apps/web && npx next typegen && npx tsc --noEmit -p .
+
+  program:
+    name: Solana program (LiteSVM, Rust + TypeScript client)
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: dtolnay/rust-toolchain@1.89.0
+      - uses: Swatinem/rust-cache@v2
+      - name: Install Agave (Solana) CLI 3.1.10
+        run: |
+          curl -sSfL https://github.com/anza-xyz/agave/releases/download/v3.1.10/solana-release-x86_64-unknown-linux-gnu.tar.bz2 | tar -xj -C "$HOME"
+          echo "$HOME/solana-release/bin" >> "$GITHUB_PATH"
+      - name: Build the program
+        run: cargo build-sbf --manifest-path programs/botheist/Cargo.toml
+      - name: Program tests (Rust, LiteSVM)
+        run: cargo test -p botheist
+      - uses: pnpm/action-setup@v4
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: pnpm
+      - run: pnpm install --frozen-lockfile
+      - name: Generated client tests (TypeScript, LiteSVM)
+        run: pnpm --filter @botheist/solana test
