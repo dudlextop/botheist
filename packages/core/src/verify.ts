@@ -44,6 +44,10 @@ export async function verifyFindingJob(db: Db, findingId: string, now = new Date
     return "rejected";
   }
 
+  // Which models actually answered (a server-side fallback can serve a different Claude model).
+  const modelCalls = await db.runEvent.findMany({ where: { runId: run.id, type: "model_call" }, select: { payload: true } });
+  const servedBy = [...new Set(modelCalls.map((e) => (e.payload as { servedBy?: string }).servedBy).filter((m): m is string => Boolean(m)))];
+
   const proof = buildProofRecord({
     runId: run.id,
     campaignId: campaign.id,
@@ -55,8 +59,11 @@ export async function verifyFindingJob(db: Db, findingId: string, now = new Date
       model: run.agentVersion.model,
       configHash: run.agentVersion.configHash,
       brain: run.brain,
+      servedBy,
     },
     winner: campaign.kind === "PRIZE" ? run.wallet : null,
+    seedState: run.seedState as unknown as StoreState,
+    guards: run.agentVersion.guards as unknown as ToolGuards,
     operations,
     verification,
     stats: { playerMessages: run.playerMessages, toolCalls: run.toolCalls },

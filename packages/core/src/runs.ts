@@ -251,6 +251,12 @@ export async function processAgentTurn(db: Db, runId: string, playerText: string
   const runBudgetLeft = run.campaign.runBudgetMicros - run.costMicros;
   const budget = Math.max(0, playerKey ? runBudgetLeft : Math.min(runBudgetLeft, campaignBudgetLeft));
 
+  // A run promised the server's Claude key must not silently fall back to offline Milo.
+  if (run.brain === "SERVER_KEY" && !coreConfig.serverModelKey) {
+    await finishRun(db, run.id, "MODEL_ERROR", "server_key_missing");
+    return "skipped";
+  }
+
   let apiKey: string | null = null;
   if (playerKey) {
     try {
@@ -308,7 +314,9 @@ export async function processAgentTurn(db: Db, runId: string, playerText: string
       onAssistantText: async (text) => {
         await db.$transaction((tx) => appendEvent(tx, runId, "agent_message", { text }));
       },
-      onModelCall: async ({ costMicros }) => {
+      onModelCall: async ({ costMicros, servedBy }) => {
+        // Recorded so the proof can state which model actually answered.
+        await db.$transaction((tx) => appendEvent(tx, runId, "model_call", { servedBy, costMicros }));
         if (costMicros <= 0) return;
         await db.$transaction([
           db.run.update({ where: { id: runId }, data: { costMicros: { increment: costMicros } } }),

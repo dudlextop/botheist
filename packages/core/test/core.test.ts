@@ -1,6 +1,7 @@
 import { afterAll, beforeEach, describe, expect, it } from "vitest";
 import { createPrisma, type Db } from "@botheist/db";
 import type { ModelProvider } from "@botheist/agent";
+import { replayProofRecord, type ProofRecord } from "@botheist/engine";
 import {
   confirmPayoutJob,
   createDraftCampaign,
@@ -109,6 +110,8 @@ describe("core flows (SPEC §12)", () => {
     expect(finding.status).toBe("CONFIRMED");
     expect(finding.proofHash).toMatch(/^[0-9a-f]{64}$/);
     expect(finding.refundedMinor).toBe(14_000);
+    // The proof record alone replays to the same violation.
+    expect(replayProofRecord(finding.proof as unknown as ProofRecord).every((c) => c.ok)).toBe(true);
 
     const chain = new FakeChain();
     expect(await sendPayoutJob(db, chain, finding.payout!.id)).toBe("SENT");

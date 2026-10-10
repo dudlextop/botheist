@@ -10,6 +10,7 @@ import {
   createSeedState,
   hashValue,
   proofHash,
+  replayProofRecord,
   regressionReplay,
   verifyFinding,
   type OperationRecord,
@@ -157,6 +158,8 @@ describe("verifier", () => {
         rule: "DOUBLE_DIP",
         agent: { versionId: "agv_1", name: "Milo v1", model: "mock", configHash: "ab".repeat(32) },
         winner: "11111111111111111111111111111111",
+        seedState: seed,
+        guards: NO_GUARDS,
         operations: records,
         verification,
         stats: { playerMessages: 3, toolCalls: 4 },
@@ -165,6 +168,11 @@ describe("verifier", () => {
     expect(proofHash(make())).toMatch(/^[0-9a-f]{64}$/);
     expect(proofHash(make())).toBe(proofHash(make()));
     expect(make().violation.decisiveSeq).toBe(4);
+    // The record alone is enough to replay it; a tampered record fails.
+    expect(replayProofRecord(make()).every((c) => c.ok)).toBe(true);
+    const tampered = make();
+    tampered.operations[3] = { ...tampered.operations[3]!, input: { ...tampered.operations[3]!.input, amount: 1 } };
+    expect(replayProofRecord(tampered).every((c) => c.ok)).toBe(false);
   });
 });
 

@@ -13,6 +13,7 @@ export type RunEventType =
   | "rule_broken"
   | "run_finished"
   | "model_error"
+  | "model_call"
   | "finding_status"
   | "payout_status";
 
