@@ -1,7 +1,7 @@
 #!/usr/bin/env bash
 # Build and deploy the BotHeist program to Solana devnet with the project's
-# deployer test keypair. Uses the Anza 3.1.10 toolchain installed alongside any
-# system Solana CLI (see PLAN.md, phase 0).
+# deployer test keypair (.keys/deployer.json, never committed). Expects the
+# Agave 3.1.10 CLI in ~/.local/share/solana-anza or on PATH, and Anchor CLI 1.1.1.
 set -euo pipefail
 cd "$(dirname "$0")/.."
 export PATH="$HOME/.local/share/solana-anza/solana-release/bin:$PATH"
