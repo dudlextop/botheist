@@ -1,0 +1,202 @@
+@import "tailwindcss";
+@import "tw-animate-css";
+@import "shadcn/tailwind.css";
+
+@custom-variant dark (&:is(.dark *));
+
+@theme inline {
+  --color-background: var(--background);
+  --color-foreground: var(--foreground);
+  --font-sans: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-heading: var(--font-archivo), ui-sans-serif, system-ui, sans-serif;
+  --font-mono: var(--font-plex-mono), ui-monospace, monospace;
+  --color-brand: var(--brand);
+  --color-tag: var(--tag);
+  --color-tag-foreground: var(--tag-foreground);
+  --color-paper: var(--paper);
+  --color-ink: var(--ink);
+  --color-stamp: var(--stamp);
+  --color-success: var(--success);
+  --color-success-foreground: var(--success-foreground);
+  --color-warning: var(--warning);
+  --color-warning-foreground: var(--warning-foreground);
+  --color-sidebar-ring: var(--sidebar-ring);
+  --color-sidebar-border: var(--sidebar-border);
+  --color-sidebar-accent-foreground: var(--sidebar-accent-foreground);
+  --color-sidebar-accent: var(--sidebar-accent);
+  --color-sidebar-primary-foreground: var(--sidebar-primary-foreground);
+  --color-sidebar-primary: var(--sidebar-primary);
+  --color-sidebar-foreground: var(--sidebar-foreground);
+  --color-sidebar: var(--sidebar);
+  --color-chart-5: var(--chart-5);
+  --color-chart-4: var(--chart-4);
+  --color-chart-3: var(--chart-3);
+  --color-chart-2: var(--chart-2);
+  --color-chart-1: var(--chart-1);
+  --color-ring: var(--ring);
+  --color-input: var(--input);
+  --color-border: var(--border);
+  --color-destructive: var(--destructive);
+  --color-accent-foreground: var(--accent-foreground);
+  --color-accent: var(--accent);
+  --color-muted-foreground: var(--muted-foreground);
+  --color-muted: var(--muted);
+  --color-secondary-foreground: var(--secondary-foreground);
+  --color-secondary: var(--secondary);
+  --color-primary-foreground: var(--primary-foreground);
+  --color-primary: var(--primary);
+  --color-popover-foreground: var(--popover-foreground);
+  --color-popover: var(--popover);
+  --color-card-foreground: var(--card-foreground);
+  --color-card: var(--card);
+  --radius-sm: calc(var(--radius) * 0.6);
+  --radius-md: calc(var(--radius) * 0.8);
+  --radius-lg: var(--radius);
+  --radius-xl: calc(var(--radius) * 1.4);
+  --radius-2xl: calc(var(--radius) * 1.8);
+  --radius-3xl: calc(var(--radius) * 2.2);
+  --radius-4xl: calc(var(--radius) * 2.6);
+  --ease-snap: cubic-bezier(0.23, 1, 0.32, 1);
+}
+
+/*
+ * BotHeist brand, see /brand.md. A store counter under daylight: receipt
+ * paper on grey laminate, register ink, price-tag yellow for money and a red
+ * rubber stamp for a broken rule. Light only by design.
+ */
+:root {
+  --ink: #191b2a;
+  --paper: #ffffff;
+  --tag: #ffd400;
+  --tag-foreground: #191b2a;
+  --stamp: #d92631;
+
+  --background: #e9eae6;
+  --foreground: var(--ink);
+  --card: var(--paper);
+  --card-foreground: var(--ink);
+  --popover: var(--paper);
+  --popover-foreground: var(--ink);
+  --primary: var(--ink);
+  --primary-foreground: #ffffff;
+  --secondary: #dcddd7;
+  --secondary-foreground: var(--ink);
+  --muted: #dfe0da;
+  --muted-foreground: #555a6b;
+  --accent: #dfe0da;
+  --accent-foreground: var(--ink);
+  --destructive: var(--stamp);
+  --border: #cfd0c9;
+  --input: #bfc0b8;
+  --ring: #191b2a;
+  --brand: var(--ink);
+  --success: #157347;
+  --success-foreground: #ffffff;
+  --warning: #9a5800;
+  --warning-foreground: #ffffff;
+  --chart-1: var(--ink);
+  --chart-2: #157347;
+  --chart-3: #c79a00;
+  --chart-4: var(--stamp);
+  --chart-5: #555a6b;
+  --radius: 0.5rem;
+  --sidebar: var(--paper);
+  --sidebar-foreground: var(--ink);
+  --sidebar-primary: var(--ink);
+  --sidebar-primary-foreground: #ffffff;
+  --sidebar-accent: #dfe0da;
+  --sidebar-accent-foreground: var(--ink);
+  --sidebar-border: #cfd0c9;
+  --sidebar-ring: var(--ink);
+  color-scheme: light;
+}
+
+@layer base {
+  * {
+    @apply border-border outline-ring/50;
+  }
+  html {
+    @apply font-sans;
+    font-optical-sizing: auto;
+  }
+  body {
+    @apply bg-background text-foreground;
+    font-feature-settings: "ss01";
+  }
+  ::selection {
+    background: var(--tag);
+    color: var(--ink);
+  }
+}
+
+/* Type: Archivo is variable in width. Condensed caps for signage, expanded for prices and the wordmark. */
+@utility font-display {
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  letter-spacing: 0;
+  line-height: 0.9;
+}
+@utility font-condensed {
+  font-stretch: 75%;
+}
+@utility font-wide {
+  font-stretch: 125%;
+  letter-spacing: -0.03em;
+}
+
+/* Thermal receipt: zig-zag top and bottom edges. Wrap in .paper-shadow for depth. */
+@utility receipt-edges {
+  --zz: 10px;
+  -webkit-mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zz) 51% repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--zz) 51% repeat-x;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zz) 51% repeat-x,
+    conic-gradient(from 135deg at top, #0000, #000 1deg 89deg, #0000 90deg) top / var(--zz) 51% repeat-x;
+}
+@utility receipt-edge-bottom {
+  --zz: 10px;
+  -webkit-mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zz) 51% repeat-x,
+    linear-gradient(#000 0 0) top / 100% 51% no-repeat;
+  mask:
+    conic-gradient(from -45deg at bottom, #0000, #000 1deg 89deg, #0000 90deg) bottom / var(--zz) 51% repeat-x,
+    linear-gradient(#000 0 0) top / 100% 51% no-repeat;
+}
+@utility paper-shadow {
+  filter: drop-shadow(0 1px 1px rgb(25 27 42 / 0.08)) drop-shadow(0 6px 10px rgb(25 27 42 / 0.06));
+}
+
+/* Rubber stamp: red ink with a little texture, multiplied onto the paper. */
+@utility stamp {
+  color: var(--stamp);
+  border: 3px solid currentColor;
+  border-radius: 6px;
+  box-shadow:
+    inset 0 0 0 2px var(--paper),
+    inset 0 0 0 4px currentColor;
+  padding: 0.45em 0.8em 0.35em;
+  font-family: var(--font-heading);
+  font-weight: 900;
+  font-stretch: 62%;
+  text-transform: uppercase;
+  line-height: 1;
+  mix-blend-mode: multiply;
+  -webkit-mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+  mask-image: url("data:image/svg+xml;utf8,<svg xmlns='http://www.w3.org/2000/svg' width='160' height='160'><filter id='n'><feTurbulence type='fractalNoise' baseFrequency='0.85' numOctaves='2' seed='7'/><feColorMatrix values='0 0 0 0 0  0 0 0 0 0  0 0 0 0 0  0 0 0 -2.4 1.75'/></filter><rect width='160' height='160' filter='url(%23n)'/></svg>");
+}
+
+/* A price tag: chamfered left end with a punched hole. */
+@utility tag-shape {
+  clip-path: polygon(22px 0, 100% 0, 100% 100%, 22px 100%, 0 50%);
+}
+
+/* Tear-off perforation between coupon cells. */
+@utility perforation-x {
+  background-image: radial-gradient(circle, var(--background) 3.5px, transparent 4px);
+  background-size: 14px 14px;
+  background-repeat: repeat-y;
+  background-position: center;
+}
